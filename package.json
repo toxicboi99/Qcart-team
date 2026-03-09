@@ -1,0 +1,46 @@
+{
+  "name": "ecommerce-inngest",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "body-parser": "^2.2.2",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "mongodb": "^7.1.0",
+    "mongoose": "^8.23.0",
+    "next": "15.1.6",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "react-hot-toast": "^2.5.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "eslint": "^9",
+    "eslint-config-next": "15.1.6",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1"
+  },
+  "description": "QuickCart is an open-source **Next.js eCommerce frontend** project.  \r It provides a modern, fast and customizable shopping UI.  \r This repo is **frontend only** – contributors can improve the design, add new pages, animations and more.",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Razzsha/quickcart-team.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Razzsha/quickcart-team/issues"
+  },
+  "homepage": "https://github.com/Razzsha/quickcart-team#readme"
+}

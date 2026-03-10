@@ -15,7 +15,7 @@
     "express": "^4.22.1",
     "mongodb": "^7.1.0",
     "mongoose": "^8.23.0",
-    "next": "15.1.6",
+    "next": "^16.1.6",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-hot-toast": "^2.5.1"

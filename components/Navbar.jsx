@@ -48,9 +48,7 @@ const Navbar = () => {
             {label}
           </Link>
         ))}
-        <Link href="/admin" className="text-xs border px-4 py-1.5 rounded-full hover:bg-gray-50 transition">
-          Admin
-        </Link>
+       
       </div>
 
       {/* Desktop right section: search, cart, auth */}

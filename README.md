@@ -91,26 +91,19 @@ npm run dev
 
 ## Admin Login Credentials
 
-Default admin credentials for this project:
+Admin access in this project is assigned by email through `ADMIN_EMAILS`.
+
+Current configured admin email:
 
 ```text
-Email: admin@example.com
-Password: Admin@123
+admin@example.com
 ```
-
-Admin access in this project is assigned by email through `ADMIN_EMAILS`.
 
 Important:
 
-- Run the command below to create or update the admin user in the database:
-
-```bash
-npm run admin:seed
-```
-
-- This seed script creates or updates `admin@example.com` with password `Admin@123`.
-- If `ADMIN_EMAILS` is set, the script uses the first email in that list as the admin email.
-- You can override the defaults with `ADMIN_DEFAULT_EMAIL`, `ADMIN_DEFAULT_PASSWORD`, `ADMIN_DEFAULT_NAME`, and `ADMIN_DEFAULT_PHONE`.
+- There is no hardcoded default admin password in this repository.
+- The admin password is whatever password is stored for the configured admin user in the database.
+- If the admin user does not exist yet, create the user first with an email that is listed in `ADMIN_EMAILS`.
 - Admin login page: `/admin/login`
 
 ## Current Database Models

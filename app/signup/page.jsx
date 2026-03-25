@@ -8,6 +8,8 @@ import Link from "next/link";
 import { assets } from "@/assets/assets";
 import toast from "react-hot-toast";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
 const SignUp = () => {
   const [formData, setFormData] = useState({
     fullName: "",
@@ -36,7 +38,7 @@ const SignUp = () => {
       }
 
       try {
-        const response = await fetch("http://localhost:5000/api/users/signup", {
+        const response = await fetch(`${API_URL}/api/users/signup`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -53,8 +55,9 @@ const SignUp = () => {
         const data = await response.json();
 
         if (response.ok) {
+          const otpHint = data.otpPreview ? ` Dev OTP: ${data.otpPreview}` : "";
           toast.success("OTP sent to your email address!");
-          setMessage("OTP sent to your email address. Please check your inbox and verify.");
+          setMessage(`OTP sent to your email address. Please check your inbox and verify.${otpHint}`);
           setStep("verify");
         } else {
           toast.error(data.error || "Signup failed");
@@ -68,7 +71,7 @@ const SignUp = () => {
     } else {
       // Verify OTP
       try {
-        const response = await fetch("http://localhost:5000/api/users/verify-otp", {
+        const response = await fetch(`${API_URL}/api/users/verify-otp`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id          String    @id @default(cuid())
+  name        String
+  phoneNumber String
+  email       String    @unique
+  password    String
+  otp         String?
+  otpExpiry   DateTime?
+  isVerified  Boolean   @default(false)
+  role        String    @default("user")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  orders      Order[]
+  products    Product[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String
+  price       Float
+  offerPrice  Float
+  image       String[]
+  category    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Order {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items         Json
+  amount        Float
+  address       Json
+  status        String   @default("Pending")
+  paymentMethod String   @default("COD")
+  paymentStatus String   @default("Pending")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Contact {
+  id          String   @id @default(cuid())
+  type        String
+  name        String
+  email       String
+  phoneNumber String?
+  message     String?
+  status      String   @default("new")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

@@ -7,6 +7,8 @@ import Footer from "@/components/admin/Footer";
 import Loading from "@/components/Loading";
 import toast from "react-hot-toast";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
 const Orders = () => {
 
     const { currency } = useAppContext();
@@ -17,7 +19,7 @@ const Orders = () => {
 
     const fetchAdminOrders = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/orders/all', {
+            const response = await fetch(`${API_URL}/api/orders/all`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -61,8 +63,7 @@ const Orders = () => {
                 {!isBackendAvailable && (
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
                         <p className="text-sm text-yellow-800">
-                            <strong>Note:</strong> Backend server is not available. Showing demo data. 
-                            Please start the backend server at <code className="bg-yellow-100 px-1 rounded">http://localhost:5000</code>
+                            <strong>Note:</strong> Orders API is not available right now, so you&apos;re seeing demo data.
                         </p>
                     </div>
                 )}

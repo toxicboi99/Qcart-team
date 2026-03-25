@@ -8,6 +8,8 @@ import Navbar from "@/components/Navbar";
 import Loading from "@/components/Loading";
 import { useRouter } from "next/navigation";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
 const MyOrders = () => {
 
     const router = useRouter();
@@ -29,7 +31,7 @@ const MyOrders = () => {
 
             const response =
                 await fetch(
-                    `http://localhost:5000/api/orders/user/${userData._id}`
+                    `${API_URL}/api/orders/user/${userData._id}`
                 );
 
             if (response.ok) {

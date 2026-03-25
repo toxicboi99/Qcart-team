@@ -6,6 +6,8 @@ import Footer from '@/components/Footer'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+
 const ContactPage = () => {
   const [showSalesModal, setShowSalesModal] = useState(false)
   const [salesForm, setSalesForm] = useState({ name: '', email: '', phoneNumber: '', message: '', company: '' })
@@ -15,7 +17,7 @@ const ContactPage = () => {
     e.preventDefault()
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:5000/api/contact', {
+      const res = await fetch(`${API_URL}/api/contact`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

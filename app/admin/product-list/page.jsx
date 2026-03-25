@@ -6,7 +6,7 @@ import { useAppContext } from "@/context/AppContext";
 import Footer from "@/components/admin/Footer";
 import Loading from "@/components/Loading";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 const ProductList = () => {
 

@@ -32,7 +32,7 @@ export const AppContextProvider = (props) => {
     const [sessionInfo, setSessionInfo] = useState(null) // { loginAt, expiresAt, remainingMs }
 
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
     const fetchProductData = async () => {
         try {

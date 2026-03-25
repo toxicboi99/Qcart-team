@@ -7,6 +7,9 @@ export const runtime = "nodejs";
 export async function GET() {
   try {
     const orders = await prisma.order.findMany({
+      include: {
+        user: true,
+      },
       orderBy: { createdAt: "desc" },
     });
 

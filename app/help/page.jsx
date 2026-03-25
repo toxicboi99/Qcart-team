@@ -11,7 +11,7 @@ const faqs = [
   { q: 'How do I update my address?', a: 'Go to the Cart page and add a new address before placing an order. Your addresses are saved for future orders.' },
   { q: 'How does email verification work?', a: 'When you sign up, we send an OTP to your email address. Enter it on the verification page to activate your account.' },
   { q: 'Can I cancel my order?', a: 'Contact our support team. Orders in Pending or Processing status may be cancellable.' },
-  { q: 'What payment methods do you accept?', a: 'Currently we support Cash on Delivery (COD). More payment options coming soon!' }
+  { q: 'What payment methods do you accept?', a: 'We support Cash on Delivery (COD) and online payment submission through PhonePe, Google Pay, and Paytm with payment screenshot upload during checkout.' }
 ]
 
 const HelpPage = () => {

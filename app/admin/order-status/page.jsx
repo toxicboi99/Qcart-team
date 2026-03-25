@@ -1,7 +1,5 @@
 'use client';
 import React, { useEffect, useState } from "react";
-import { assets } from "@/assets/assets";
-import Image from "next/image";
 import { useAppContext } from "@/context/AppContext";
 import Footer from "@/components/admin/Footer";
 import Loading from "@/components/Loading";
@@ -9,252 +7,473 @@ import toast from "react-hot-toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
+function formatDate(value) {
+  if (!value) return "Recently";
+  return new Date(value).toLocaleString();
+}
+
+function getStatusTone(status) {
+  switch (status) {
+    case "Completed":
+      return "bg-emerald-100 text-emerald-700 border-emerald-200";
+    case "Processing":
+      return "bg-blue-100 text-blue-700 border-blue-200";
+    case "Cancelled":
+      return "bg-rose-100 text-rose-700 border-rose-200";
+    default:
+      return "bg-amber-100 text-amber-700 border-amber-200";
+  }
+}
+
 const OrderStatus = () => {
+  const { currency } = useAppContext();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [isBackendAvailable, setIsBackendAvailable] = useState(true);
 
-    const { currency } = useAppContext();
+  const fetchAdminOrders = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/orders/all`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-    const [orders, setOrders] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [filterStatus, setFilterStatus] = useState('All'); // All, Pending, Processing, Completed, Cancelled
-    const [isBackendAvailable, setIsBackendAvailable] = useState(true);
+      if (response.ok) {
+        const data = await response.json();
+        setOrders(data);
+        setIsBackendAvailable(true);
+      } else {
+        console.warn("API returned error, using dummy data");
+        setIsBackendAvailable(false);
+        const { orderDummyData } = await import("@/assets/assets");
+        setOrders(orderDummyData || []);
+      }
+    } catch (error) {
+      console.warn("Backend server not available, using dummy data:", error.message);
+      setIsBackendAvailable(false);
 
-    const fetchAdminOrders = async () => {
+      try {
+        const { orderDummyData } = await import("@/assets/assets");
+        setOrders(orderDummyData || []);
+      } catch (importError) {
+        console.error("Failed to load dummy data:", importError);
+        setOrders([]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateOrderStatus = async (orderId, newStatus) => {
+    if (!orderId) {
+      toast.error("Invalid order ID");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
+        toast.success(`Order status updated to ${newStatus}`);
+        setOrders((currentOrders) =>
+          currentOrders.map((order) =>
+            order._id === orderId ? { ...order, status: newStatus } : order
+          )
+        );
+      } else {
         try {
-            const response = await fetch(`${API_URL}/api/orders/all`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                setOrders(data);
-                setIsBackendAvailable(true);
-            } else {
-                // Fallback to dummy data
-                console.warn('API returned error, using dummy data');
-                setIsBackendAvailable(false);
-                const { orderDummyData } = await import("@/assets/assets");
-                setOrders(orderDummyData || []);
-            }
-        } catch (error) {
-            console.warn('Backend server not available, using dummy data:', error.message);
-            setIsBackendAvailable(false);
-            // Fallback to dummy data when backend is not available
-            try {
-                const { orderDummyData } = await import("@/assets/assets");
-                setOrders(orderDummyData || []);
-            } catch (importError) {
-                console.error('Failed to load dummy data:', importError);
-                setOrders([]);
-            }
-        } finally {
-            setLoading(false);
+          const data = await response.json();
+          toast.error(data.error || "Failed to update order status");
+        } catch {
+          toast.error("Failed to update order status. Backend server may not be running.");
         }
+      }
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      setOrders((currentOrders) =>
+        currentOrders.map((order) =>
+          order._id === orderId ? { ...order, status: newStatus } : order
+        )
+      );
+      toast.success(
+        `Order status updated to ${newStatus} (local only - backend not available)`
+      );
+    }
+  };
+
+  const updatePaymentStatus = async (orderId, newPaymentStatus) => {
+    if (!orderId) {
+      toast.error("Invalid order ID");
+      return;
     }
 
-    const updateOrderStatus = async (orderId, newStatus) => {
-        if (!orderId) {
-            toast.error('Invalid order ID');
-            return;
-        }
+    try {
+      const response = await fetch(`${API_URL}/api/orders/${orderId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ paymentStatus: newPaymentStatus }),
+      });
 
-        try {
-            const response = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ status: newStatus }),
-            });
+      if (response.ok) {
+        toast.success(`Payment marked as ${newPaymentStatus}`);
+        setOrders((currentOrders) =>
+          currentOrders.map((order) =>
+            order._id === orderId
+              ? { ...order, paymentStatus: newPaymentStatus }
+              : order
+          )
+        );
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast.error(data.error || "Failed to update payment status");
+      }
+    } catch (error) {
+      console.error("Error updating payment status:", error);
+      toast.error("Failed to update payment status");
+    }
+  };
 
-            if (response.ok) {
-                toast.success(`Order status updated to ${newStatus}`);
-                // Update local state
-                setOrders(orders.map(order => 
-                    order._id === orderId 
-                        ? { ...order, status: newStatus }
-                        : order
-                ));
-            } else {
-                try {
-                    const data = await response.json();
-                    toast.error(data.error || 'Failed to update order status');
-                } catch (parseError) {
-                    toast.error('Failed to update order status. Backend server may not be running.');
-                }
-            }
-        } catch (error) {
-            console.error('Error updating order status:', error);
-            // Update local state even if API fails (for demo purposes)
-            setOrders(orders.map(order => 
-                order._id === orderId 
-                    ? { ...order, status: newStatus }
-                    : order
-            ));
-            toast.success(`Order status updated to ${newStatus} (local only - backend not available)`);
-        }
+  const deleteOrder = async (orderId) => {
+    if (!orderId) {
+      toast.error("Invalid order ID");
+      return;
     }
 
-    useEffect(() => {
-        fetchAdminOrders();
-    }, []);
-
-    const filteredOrders = filterStatus === 'All' 
-        ? orders 
-        : orders.filter(order => order.status === filterStatus);
-
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'Completed':
-                return 'bg-green-100 text-green-800 border-green-300';
-            case 'Pending':
-                return 'bg-orange-100 text-orange-800 border-orange-300';
-            case 'Processing':
-                return 'bg-blue-100 text-blue-800 border-blue-300';
-            case 'Cancelled':
-                return 'bg-red-100 text-red-800 border-red-300';
-            default:
-                return 'bg-gray-100 text-gray-800 border-gray-300';
-        }
-    }
-
-    return (
-        <div className="flex-1 h-screen overflow-scroll flex flex-col justify-between text-sm">
-            {loading ? <Loading /> : (
-                <div className="md:p-10 p-4 space-y-5">
-                    {!isBackendAvailable && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                            <p className="text-sm text-yellow-800">
-                                <strong>Note:</strong> Orders API is not available right now, so you&apos;re seeing demo data.
-                                Status updates will only be applied locally until the API is reachable.
-                            </p>
-                        </div>
-                    )}
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <h2 className="text-lg font-medium">Order Status Management</h2>
-                        
-                        {/* Filter Buttons */}
-                        <div className="flex flex-wrap gap-2">
-                            {['All', 'Pending', 'Processing', 'Completed', 'Cancelled'].map((status) => (
-                                <button
-                                    key={status}
-                                    onClick={() => setFilterStatus(status)}
-                                    className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-                                        filterStatus === status
-                                            ? 'bg-orange-600 text-white'
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
-                                >
-                                    {status}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="max-w-6xl rounded-md">
-                        {filteredOrders.length === 0 ? (
-                            <div className="text-center py-10 text-gray-500">
-                                No orders found {filterStatus !== 'All' && `with status "${filterStatus}"`}
-                            </div>
-                        ) : (
-                            filteredOrders.map((order, index) => (
-                                <div key={order._id || index} className="flex flex-col md:flex-row gap-5 justify-between p-5 border-t border-gray-300 hover:bg-gray-50 transition">
-                                    <div className="flex-1 flex gap-5 max-w-80">
-                                        <Image
-                                            className="max-w-16 max-h-16 object-cover"
-                                            src={assets.box_icon}
-                                            alt="box_icon"
-                                        />
-                                        <div className="flex flex-col gap-2">
-                                            <p className="font-medium">
-                                                Order #{order._id?.slice(-6) || index + 1}
-                                            </p>
-                                            <p className="text-xs text-gray-600">
-                                                {order.items.map((item) => item.product.name + ` x ${item.quantity}`).join(", ")}
-                                            </p>
-                                            <span className="text-xs">Items: {order.items.length}</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="flex-1">
-                                        <p className="font-medium mb-1">Delivery Address</p>
-                                        <p className="text-xs text-gray-600">
-                                            <span className="font-medium">{order.address.fullName}</span>
-                                            <br />
-                                            {order.address.area}
-                                            <br />
-                                            {`${order.address.city}, ${order.address.state}`}
-                                            <br />
-                                            {order.address.phoneNumber}
-                                        </p>
-                                    </div>
-
-                                    <div className="flex flex-col gap-2">
-                                        <p className="font-medium">{currency}{order.amount}</p>
-                                        <p className="text-xs text-gray-600">
-                                            Method: {order.paymentMethod || 'COD'}
-                                        </p>
-                                        <p className="text-xs text-gray-600">
-                                            Date: {new Date(order.date || order.createdAt).toLocaleDateString()}
-                                        </p>
-                                    </div>
-
-                                    <div className="flex flex-col gap-3 min-w-[200px]">
-                                        {/* Current Status */}
-                                        <div>
-                                            <p className="text-xs text-gray-600 mb-1">Current Status</p>
-                                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status || 'Pending')}`}>
-                                                {order.status || 'Pending'}
-                                            </span>
-                                        </div>
-
-                                        {/* Status Update Buttons */}
-                                        <div className="flex flex-col gap-2">
-                                            {order.status !== 'Pending' && (
-                                                <button
-                                                    onClick={() => updateOrderStatus(order._id, 'Pending')}
-                                                    className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded text-xs hover:bg-orange-200 transition"
-                                                >
-                                                    Mark as Pending
-                                                </button>
-                                            )}
-                                            {order.status !== 'Processing' && (
-                                                <button
-                                                    onClick={() => updateOrderStatus(order._id, 'Processing')}
-                                                    className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 transition"
-                                                >
-                                                    Mark as Processing
-                                                </button>
-                                            )}
-                                            {order.status !== 'Completed' && (
-                                                <button
-                                                    onClick={() => updateOrderStatus(order._id, 'Completed')}
-                                                    className="px-3 py-1.5 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200 transition"
-                                                >
-                                                    Mark as Completed
-                                                </button>
-                                            )}
-                                            {order.status !== 'Cancelled' && (
-                                                <button
-                                                    onClick={() => updateOrderStatus(order._id, 'Cancelled')}
-                                                    className="px-3 py-1.5 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200 transition"
-                                                >
-                                                    Cancel Order
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-            )}
-            <Footer />
-        </div>
+    const confirmed = window.confirm(
+      "Delete this order permanently? This action cannot be undone."
     );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/api/orders/${orderId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        toast.success("Order deleted successfully");
+        setOrders((currentOrders) =>
+          currentOrders.filter((order) => order._id !== orderId)
+        );
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast.error(data.error || "Failed to delete order");
+      }
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      toast.error("Failed to delete order");
+    }
+  };
+
+  useEffect(() => {
+    fetchAdminOrders();
+  }, []);
+
+  const filteredOrders =
+    filterStatus === "All"
+      ? orders
+      : orders.filter((order) => order.status === filterStatus);
+
+  return (
+    <div className="flex-1 h-screen overflow-scroll flex flex-col justify-between text-sm">
+      {loading ? (
+        <Loading />
+      ) : (
+        <div className="space-y-5 p-4 md:p-8">
+          {!isBackendAvailable && (
+            <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
+              <p className="text-sm text-yellow-800">
+                <strong>Note:</strong> Orders API is not available right now, so
+                you are seeing demo data. Status changes will only update locally
+                until the backend is reachable.
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-orange-500">
+                Order Workflow
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold text-slate-900">
+                Manage order status
+              </h2>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {["All", "Pending", "Processing", "Completed", "Cancelled"].map(
+                (status) => (
+                  <button
+                    key={status}
+                    onClick={() => setFilterStatus(status)}
+                    className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
+                      filterStatus === status
+                        ? "bg-orange-500 text-white"
+                        : "bg-white text-slate-600 border border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    {status}
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {filteredOrders.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
+                No orders found
+                {filterStatus !== "All" && ` with status "${filterStatus}"`}
+              </div>
+            ) : (
+              filteredOrders.map((order, index) => (
+                <div
+                  key={order._id || index}
+                  className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+                >
+                  <div className="flex flex-col gap-4 border-b border-slate-100 pb-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
+                        Order ID
+                      </p>
+                      <h3 className="mt-2 text-lg font-semibold text-slate-900">
+                        #{order._id?.slice(-8)?.toUpperCase() || index + 1}
+                      </h3>
+                      <p className="mt-2 text-sm text-slate-500">
+                        {formatDate(order.createdAt || order.date)}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2">
+                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                          Current Status
+                        </p>
+                        <span
+                          className={`mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${getStatusTone(order.status || "Pending")}`}
+                        >
+                          {order.status || "Pending"}
+                        </span>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2">
+                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                          Order Value
+                        </p>
+                        <p className="mt-1 text-lg font-semibold text-slate-900">
+                          {currency}
+                          {order.amount}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-4 xl:grid-cols-[1.15fr_0.9fr_0.9fr_0.95fr]">
+                    <section className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        Order Items
+                      </p>
+                      <div className="mt-4 space-y-3">
+                        {(order.items || []).map((item, itemIndex) => (
+                          <div
+                            key={`${order._id || index}-item-${itemIndex}`}
+                            className="flex items-center gap-3 rounded-2xl bg-white p-3"
+                          >
+                            <img
+                              src={item.product?.image?.[0] || "/payment-qr.svg"}
+                              alt={item.product?.name || "Product"}
+                              className="h-16 w-16 rounded-2xl border border-slate-200 object-cover"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate font-semibold text-slate-900">
+                                {item.product?.name || "Product"}
+                              </p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                {item.product?.category || "General"}
+                              </p>
+                            </div>
+                            <div className="text-right text-sm">
+                              <p className="font-semibold text-slate-900">
+                                {currency}
+                                {item.product?.offerPrice ?? item.product?.price ?? 0}
+                              </p>
+                              <p className="mt-1 text-slate-500">x {item.quantity}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        User Details
+                      </p>
+                      <div className="mt-4 space-y-3 text-sm text-slate-600">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                            Full Name
+                          </p>
+                          <p className="mt-1 font-semibold text-slate-900">
+                            {order.customer?.name || order.address?.fullName || "N/A"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                            Email
+                          </p>
+                          <p className="mt-1 break-all">
+                            {order.customer?.email || order.address?.email || "N/A"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                            Phone
+                          </p>
+                          <p className="mt-1">
+                            {order.customer?.phoneNumber ||
+                              order.address?.phoneNumber ||
+                              "N/A"}
+                          </p>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        Delivery Address
+                      </p>
+                      <div className="mt-4 space-y-2 text-sm leading-6 text-slate-600">
+                        <p className="font-semibold text-slate-900">
+                          {order.address?.fullName || "N/A"}
+                        </p>
+                        <p>{order.address?.area || "N/A"}</p>
+                        <p>
+                          {[order.address?.city, order.address?.state]
+                            .filter(Boolean)
+                            .join(", ") || "N/A"}
+                        </p>
+                        <p>{order.address?.pincode || "N/A"}</p>
+                        <p>{order.address?.phoneNumber || "N/A"}</p>
+                      </div>
+                    </section>
+
+                    <section className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        Payment and Actions
+                      </p>
+                      <div className="mt-4 space-y-3 text-sm text-slate-600">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                            Method
+                          </p>
+                          <p className="mt-1 font-semibold text-slate-900">
+                            {order.paymentMethod || "COD"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">
+                            Payment Status
+                          </p>
+                          <p className="mt-1">{order.paymentStatus || "Pending"}</p>
+                        </div>
+
+                        {order.paymentScreenshotUrl ? (
+                          <a
+                            href={order.paymentScreenshotUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                          >
+                            <img
+                              src={order.paymentScreenshotUrl}
+                              alt="Payment screenshot"
+                              className="h-36 w-full object-cover"
+                            />
+                            <div className="border-t border-slate-100 px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-indigo-600">
+                              Open screenshot
+                            </div>
+                          </a>
+                        ) : (
+                          <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-xs uppercase tracking-[0.16em] text-slate-400">
+                            No screenshot uploaded
+                          </div>
+                        )}
+
+                        <div className="grid gap-2 pt-2">
+                          {order.paymentMethod !== "COD" &&
+                            order.paymentStatus !== "Verified" && (
+                              <button
+                                onClick={() =>
+                                  updatePaymentStatus(order._id, "Verified")
+                                }
+                                className="rounded-2xl bg-violet-100 px-4 py-2 text-xs font-semibold text-violet-700 transition hover:bg-violet-200"
+                              >
+                                Verify Payment
+                              </button>
+                            )}
+                          {order.status !== "Pending" && (
+                            <button
+                              onClick={() => updateOrderStatus(order._id, "Pending")}
+                              className="rounded-2xl bg-amber-100 px-4 py-2 text-xs font-semibold text-amber-700 transition hover:bg-amber-200"
+                            >
+                              Mark as Pending
+                            </button>
+                          )}
+                          {order.status !== "Processing" && (
+                            <button
+                              onClick={() => updateOrderStatus(order._id, "Processing")}
+                              className="rounded-2xl bg-blue-100 px-4 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-200"
+                            >
+                              Mark as Processing
+                            </button>
+                          )}
+                          {order.status !== "Completed" && (
+                            <button
+                              onClick={() => updateOrderStatus(order._id, "Completed")}
+                              className="rounded-2xl bg-emerald-100 px-4 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-200"
+                            >
+                              Mark as Completed
+                            </button>
+                          )}
+                          {order.status !== "Cancelled" && (
+                            <button
+                              onClick={() => updateOrderStatus(order._id, "Cancelled")}
+                              className="rounded-2xl bg-rose-100 px-4 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-200"
+                            >
+                              Cancel Order
+                            </button>
+                          )}
+                          <button
+                            onClick={() => deleteOrder(order._id)}
+                            className="rounded-2xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+                          >
+                            Delete Order
+                          </button>
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+      <Footer />
+    </div>
+  );
 };
 
 export default OrderStatus;

@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { sendOrderStatusEmail } from "@/lib/server/email";
 import { errorResponse } from "@/lib/server/http";
 import { serializeOrder } from "@/lib/server/serializers";
 
@@ -18,20 +19,55 @@ export async function PATCH(request, { params }) {
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
+      include: {
+        user: true,
+      },
     });
 
     if (!order) {
       return errorResponse("Order not found", 404);
     }
 
+    if (order.status === status) {
+      return Response.json({
+        message: "Order status is already up to date",
+        order: serializeOrder(order),
+      });
+    }
+
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
       data: { status },
+      include: {
+        user: true,
+      },
     });
+
+    let emailDelivered = false;
+
+    if (order.user?.email) {
+      try {
+        const emailResult = await sendOrderStatusEmail({
+          email: order.user.email,
+          userName: order.user.name,
+          previousStatus: order.status || "Pending",
+          order: {
+            ...updatedOrder,
+            items: Array.isArray(order.items) ? order.items : [],
+            address: order.address || {},
+          },
+        });
+
+        emailDelivered = Boolean(emailResult?.delivered);
+      } catch (emailError) {
+        console.error("Order status email send failed:", emailError);
+      }
+    }
 
     return Response.json({
       message: "Order status updated successfully",
       order: serializeOrder(updatedOrder),
+      emailDelivered,
     });
   } catch (error) {
     return errorResponse(error.message || "Failed to update order status", 400);

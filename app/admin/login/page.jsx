@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import Image from 'next/image'
 import { assets } from '@/assets/assets'
 import toast from 'react-hot-toast'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createSession, setAdminSession } from '@/lib/session'
 
@@ -74,9 +75,9 @@ const AdminLogin = () => {
           </button>
         </form>
 
-        <a href="/" className="block text-center text-sm text-orange-600 hover:text-orange-700 mt-6">
-          ← Back to Store
-        </a>
+        <Link href="/" className="block text-center text-sm text-orange-600 hover:text-orange-700 mt-6">
+          Back to Store
+        </Link>
       </div>
     </div>
   )

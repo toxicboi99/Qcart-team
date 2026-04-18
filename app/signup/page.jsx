@@ -55,9 +55,8 @@ const SignUp = () => {
         const data = await response.json();
 
         if (response.ok) {
-          const otpHint = data.otpPreview ? ` Dev OTP: ${data.otpPreview}` : "";
           toast.success("OTP sent to your email address!");
-          setMessage(`OTP sent to your email address. Please check your inbox and verify.${otpHint}`);
+          setMessage("OTP sent to your email address. Please check your inbox and verify.");
           setStep("verify");
         } else {
           toast.error(data.error || "Signup failed");

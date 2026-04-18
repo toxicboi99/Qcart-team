@@ -1,6 +1,6 @@
 'use client'
 import { useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import {
   createSession,
@@ -26,6 +26,7 @@ export const AppContextProvider = (props) => {
     const [products, setProducts] = useState([])
     const [userData, setUserData] = useState(null)
     const [isAdmin, setIsAdmin] = useState(false)
+    const [isVendor, setIsVendor] = useState(false)
     const [cartItems, setCartItems] = useState({})
     const [isAuthenticated, setIsAuthenticated] = useState(false)
     const [authLoading, setAuthLoading] = useState(true)
@@ -34,7 +35,7 @@ export const AppContextProvider = (props) => {
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
-    const fetchProductData = async () => {
+    const fetchProductData = useCallback(async () => {
         try {
             const res = await fetch(`${API_URL}/api/products`)
             const data = await res.json()
@@ -42,25 +43,33 @@ export const AppContextProvider = (props) => {
         } catch {
             setProducts([])
         }
-    }
+    }, [API_URL])
 
 
-    const fetchUserData = () => {
+    const fetchUserData = useCallback(() => {
         const session = getUserSession();
         if (session && isSessionValid(session)) {
             setUserData(session.user);
             setIsAuthenticated(true);
-            setIsAdmin(session.user.role === 'admin' || session.user.role === 'seller' || false);
+            setIsAdmin(session.user.role === 'admin');
+            setIsVendor(
+                Boolean(
+                    session.user.isVendor ||
+                    session.user.role === 'vendor' ||
+                    session.user.role === 'seller'
+                )
+            );
             setSessionInfo(getSessionInfo(session));
         } else {
             if (session) clearUserSession();
             setUserData(null);
             setIsAuthenticated(false);
             setIsAdmin(false);
+            setIsVendor(false);
             setSessionInfo(null);
         }
         setAuthLoading(false);
-    }
+    }, [])
 
 
 
@@ -86,7 +95,14 @@ export const AppContextProvider = (props) => {
                 setUserSession(session);
                 setUserData(data.user);
                 setIsAuthenticated(true);
-                setIsAdmin(data.user.role === 'admin' || data.user.role === 'seller' || false);
+                setIsAdmin(data.user.role === 'admin');
+                setIsVendor(
+                    Boolean(
+                        data.user.isVendor ||
+                        data.user.role === 'vendor' ||
+                        data.user.role === 'seller'
+                    )
+                );
                 setSessionInfo(getSessionInfo(session));
                 toast.success('Signed in successfully!');
                 return { success: true };
@@ -119,6 +135,7 @@ export const AppContextProvider = (props) => {
         setUserData(null);
         setIsAuthenticated(false);
         setIsAdmin(false);
+        setIsVendor(false);
         setCartItems({});
         setSessionInfo(null);
         toast.success('Logged out successfully');
@@ -252,7 +269,7 @@ export const AppContextProvider = (props) => {
     useEffect(() => {
         fetchProductData();
         fetchUserData();
-    }, []);
+    }, [fetchProductData, fetchUserData]);
 
     // Session expiry check - auto logout when session expires
     useEffect(() => {
@@ -264,6 +281,7 @@ export const AppContextProvider = (props) => {
                 setUserData(null);
                 setIsAuthenticated(false);
                 setIsAdmin(false);
+                setIsVendor(false);
                 setSessionInfo(null);
                 toast.error('Session expired. Please sign in again.');
                 router.push('/signin');
@@ -320,6 +338,7 @@ export const AppContextProvider = (props) => {
         currency, router,
 
         isAdmin, setIsAdmin,
+        isVendor,
 
         userData, fetchUserData, sessionInfo,
 

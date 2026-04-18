@@ -4,8 +4,7 @@ import { useAppContext } from "@/context/AppContext";
 import Footer from "@/components/admin/Footer";
 import Loading from "@/components/Loading";
 import toast from "react-hot-toast";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+import { fetchWithSession } from "@/lib/client-fetch";
 
 function formatDate(value) {
   if (!value) return "Recently";
@@ -34,15 +33,11 @@ const OrderStatus = () => {
 
   const fetchAdminOrders = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/orders/all`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
+      const { response, data } = await fetchWithSession(`/api/orders/all`, {
+        sessionSource: "admin",
       });
 
       if (response.ok) {
-        const data = await response.json();
         setOrders(data);
         setIsBackendAvailable(true);
       } else {
@@ -74,7 +69,8 @@ const OrderStatus = () => {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
+      const { response, data } = await fetchWithSession(`/api/orders/${orderId}/status`, {
+        sessionSource: "admin",
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -90,12 +86,7 @@ const OrderStatus = () => {
           )
         );
       } else {
-        try {
-          const data = await response.json();
-          toast.error(data.error || "Failed to update order status");
-        } catch {
-          toast.error("Failed to update order status. Backend server may not be running.");
-        }
+        toast.error(data.error || "Failed to update order status");
       }
     } catch (error) {
       console.error("Error updating order status:", error);
@@ -117,7 +108,8 @@ const OrderStatus = () => {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/orders/${orderId}`, {
+      const { response, data } = await fetchWithSession(`/api/orders/${orderId}`, {
+        sessionSource: "admin",
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -135,7 +127,6 @@ const OrderStatus = () => {
           )
         );
       } else {
-        const data = await response.json().catch(() => ({}));
         toast.error(data.error || "Failed to update payment status");
       }
     } catch (error) {
@@ -159,7 +150,8 @@ const OrderStatus = () => {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/orders/${orderId}`, {
+      const { response, data } = await fetchWithSession(`/api/orders/${orderId}`, {
+        sessionSource: "admin",
         method: "DELETE",
       });
 
@@ -169,7 +161,6 @@ const OrderStatus = () => {
           currentOrders.filter((order) => order._id !== orderId)
         );
       } else {
-        const data = await response.json().catch(() => ({}));
         toast.error(data.error || "Failed to delete order");
       }
     } catch (error) {

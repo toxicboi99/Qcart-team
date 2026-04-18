@@ -7,8 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import Footer from "@/components/admin/Footer";
 import Loading from "@/components/Loading";
 import { useAppContext } from "@/context/AppContext";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+import { fetchWithSession } from "@/lib/client-fetch";
 
 const CATEGORIES = ['Earphone', 'Headphone', 'Watch', 'Smartphone', 'Laptop', 'Camera', 'Accessories'];
 
@@ -30,9 +29,10 @@ const EditProduct = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/products/${id}`);
-        const data = await res.json();
-        if (res.ok) {
+        const { response, data } = await fetchWithSession(`/api/products/${id}`, {
+          sessionSource: 'admin',
+        });
+        if (response.ok) {
           setProduct(data);
           setName(data.name);
           setDescription(data.description);
@@ -82,13 +82,12 @@ const EditProduct = () => {
         if (file) formData.append('images', file);
       });
 
-      const res = await fetch(`${API_URL}/api/products/${id}`, {
+      const { response, data } = await fetchWithSession(`/api/products/${id}`, {
+        sessionSource: 'admin',
         method: 'PUT',
         body: formData,
       });
-
-      const data = await res.json();
-      if (res.ok) {
+      if (response.ok) {
         toast.success('Product updated successfully!');
         fetchProductData?.();
         router.push('/admin/product-list');

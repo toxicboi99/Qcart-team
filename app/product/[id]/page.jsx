@@ -9,24 +9,86 @@ import { useParams } from "next/navigation";
 import Loading from "@/components/Loading";
 import { useAppContext } from "@/context/AppContext";
 import React from "react";
+import toast from "react-hot-toast";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 const Product = () => {
 
     const { id } = useParams();
 
-    const { products, router, addToCart, handleBuyNow } = useAppContext()
+    const { products, router, addToCart, handleBuyNow, userData, isAuthenticated } = useAppContext()
 
     const [mainImage, setMainImage] = useState(null);
     const [productData, setProductData] = useState(null);
+    const [reviews, setReviews] = useState([]);
+    const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
 
-    const fetchProductData = async () => {
-        const product = products.find(product => product._id === id);
-        setProductData(product);
+    const submitReview = async (event) => {
+        event.preventDefault();
+
+        if (!isAuthenticated || !userData?._id) {
+            toast.error("Please sign in to review this product.");
+            router.push('/signin?return=/product/' + id);
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/api/products/${id}/reviews`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    userId: userData._id,
+                    rating: reviewForm.rating,
+                    comment: reviewForm.comment,
+                }),
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || "Failed to submit review.");
+            }
+
+            toast.success("Review submitted successfully.");
+            setReviewForm({ rating: 5, comment: "" });
+            try {
+                const refreshResponse = await fetch(`${API_URL}/api/products/${id}/reviews`);
+                const refreshData = await refreshResponse.json();
+                setReviews(refreshResponse.ok && Array.isArray(refreshData) ? refreshData : []);
+            } catch {
+                setReviews([]);
+            }
+        } catch (error) {
+            toast.error(error.message || "Failed to submit review.");
+        }
     }
 
     useEffect(() => {
-        fetchProductData();
-    }, [id, products.length])
+        const product = products.find(product => product._id === id);
+        setProductData(product);
+    }, [id, products])
+
+    useEffect(() => {
+        if (!id) return;
+
+        const loadReviews = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/products/${id}/reviews`);
+                const data = await res.json();
+                if (res.ok) {
+                    setReviews(Array.isArray(data) ? data : []);
+                } else {
+                    setReviews([]);
+                }
+            } catch {
+                setReviews([]);
+            }
+        };
+
+        loadReviews();
+    }, [id])
 
     return productData ? (<>
         <Navbar />
@@ -108,6 +170,10 @@ const Product = () => {
                                         {productData.category}
                                     </td>
                                 </tr>
+                                <tr>
+                                    <td className="text-gray-600 font-medium">Stock</td>
+                                    <td className="text-gray-800/50 ">{productData.stock ?? "Available"}</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -133,6 +199,118 @@ const Product = () => {
                 <button className="px-8 py-2 mb-16 border rounded text-gray-500/70 hover:bg-slate-50/90 transition">
                     See more
                 </button>
+            </div>
+
+            <div className="grid gap-8 pb-16 xl:grid-cols-[1.1fr_0.9fr]">
+                <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-orange-500">
+                                Customer Reviews
+                            </p>
+                            <h2 className="mt-2 text-2xl font-semibold text-slate-900">
+                                What buyers are saying
+                            </h2>
+                        </div>
+                        <div className="rounded-2xl bg-slate-900 px-4 py-3 text-white">
+                            <p className="text-xs uppercase tracking-[0.16em] text-white/70">Total</p>
+                            <p className="mt-1 text-xl font-semibold">{reviews.length}</p>
+                        </div>
+                    </div>
+
+                    <div className="mt-6 space-y-4">
+                        {reviews.map((review) => (
+                            <div
+                                key={review._id}
+                                className="rounded-3xl border border-slate-200 bg-slate-50 p-4"
+                            >
+                                <div className="flex items-center justify-between gap-4">
+                                    <div>
+                                        <p className="font-semibold text-slate-900">
+                                            {review.author?.fullName || "Customer"}
+                                        </p>
+                                        <p className="mt-1 text-sm text-slate-500">
+                                            Rating: {review.rating}/5
+                                        </p>
+                                    </div>
+                                    <p className="text-xs text-slate-500">
+                                        {new Date(review.createdAt).toLocaleDateString()}
+                                    </p>
+                                </div>
+                                <p className="mt-4 text-sm leading-7 text-slate-600">
+                                    {review.comment}
+                                </p>
+                                {review.reply && (
+                                    <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+                                        <p className="font-semibold">Vendor reply</p>
+                                        <p className="mt-2 leading-7">{review.reply}</p>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+
+                        {reviews.length === 0 && (
+                            <div className="rounded-3xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">
+                                No reviews yet.
+                            </div>
+                        )}
+                    </div>
+                </section>
+
+                <section className="rounded-[28px] border border-slate-200 bg-slate-900 p-6 text-white shadow-sm">
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-orange-300">
+                        Write A Review
+                    </p>
+                    <h2 className="mt-2 text-2xl font-semibold">
+                        Share your experience
+                    </h2>
+                    <p className="mt-3 text-sm leading-7 text-white/70">
+                        Reviews help vendors improve their stores and help other buyers shop with confidence.
+                    </p>
+
+                    <form onSubmit={submitReview} className="mt-6 space-y-4">
+                        <label className="block">
+                            <span className="text-sm font-medium text-white/80">Rating</span>
+                            <select
+                                value={reviewForm.rating}
+                                onChange={(event) =>
+                                    setReviewForm((current) => ({
+                                        ...current,
+                                        rating: Number(event.target.value),
+                                    }))
+                                }
+                                className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none"
+                            >
+                                {[5, 4, 3, 2, 1].map((rating) => (
+                                    <option key={rating} value={rating} className="text-slate-900">
+                                        {rating} Stars
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        <label className="block">
+                            <span className="text-sm font-medium text-white/80">Comment</span>
+                            <textarea
+                                value={reviewForm.comment}
+                                onChange={(event) =>
+                                    setReviewForm((current) => ({
+                                        ...current,
+                                        comment: event.target.value,
+                                    }))
+                                }
+                                className="mt-2 min-h-32 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none"
+                                placeholder="Tell us about product quality, delivery, and overall experience"
+                                required
+                            />
+                        </label>
+                        <button
+                            type="submit"
+                            className="rounded-2xl bg-orange-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-orange-400"
+                        >
+                            Submit review
+                        </button>
+                    </form>
+                </section>
             </div>
         </div>
         <Footer />

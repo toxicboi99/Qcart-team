@@ -5,11 +5,17 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useAppContext } from "@/context/AppContext";
 
-const CATEGORIES = ['All', 'Earphone', 'Headphone', 'Watch', 'Smartphone', 'Laptop', 'Camera', 'Accessories'];
-
 const AllProducts = () => {
     const { products } = useAppContext();
     const [selectedCategory, setSelectedCategory] = useState('All');
+
+    const categories = useMemo(() => {
+        const dynamicCategories = Array.from(
+            new Set(products.map((product) => product.category).filter(Boolean))
+        );
+
+        return ['All', ...dynamicCategories];
+    }, [products]);
 
     const filteredProducts = useMemo(() => {
         if (selectedCategory === 'All') return products;
@@ -26,7 +32,7 @@ const AllProducts = () => {
                         <div className="w-16 h-0.5 bg-orange-600 rounded-full"></div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        {CATEGORIES.map((cat) => (
+                        {categories.map((cat) => (
                             <button
                                 key={cat}
                                 onClick={() => setSelectedCategory(cat)}

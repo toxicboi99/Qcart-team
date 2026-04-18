@@ -24,6 +24,11 @@ const Layout = ({ children }) => {
       router.replace('/admin/login')
       return
     }
+    if (session.user?.role !== 'admin') {
+      clearAdminSession()
+      router.replace('/admin/login')
+      return
+    }
     setChecked(true)
   }, [pathname, isLoginPage, router])
 
@@ -34,6 +39,9 @@ const Layout = ({ children }) => {
       const session = getAdminSession()
       if (!session || !isSessionValid(session)) {
         if (session) clearAdminSession()
+        router.replace('/admin/login')
+      } else if (session.user?.role !== 'admin') {
+        clearAdminSession()
         router.replace('/admin/login')
       }
     }, SESSION_CHECK_INTERVAL_MS)

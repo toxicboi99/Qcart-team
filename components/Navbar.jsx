@@ -6,7 +6,7 @@ import { useAppContext } from "@/context/AppContext";
 import Image from "next/image";
 
 const Navbar = () => {
-  const { isAdmin, router, isAuthenticated, userData, logout, getCartCount } = useAppContext();
+  const { isAdmin, isVendor, router, isAuthenticated, userData, logout, getCartCount } = useAppContext();
   const [showDropdown, setShowDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const cartCount = getCartCount();
@@ -28,6 +28,7 @@ const Navbar = () => {
   const navLinks = [
     { href: "/", label: "Home" },
     { href: "/all-products", label: "Shop" },
+    { href: isVendor ? "/vendor/dashboard" : "/vendor/register", label: isVendor ? "Vendor" : "Sell" },
     { href: "/about", label: "About Us" },
     { href: "/contact", label: "Contact" },
   ];
@@ -91,6 +92,20 @@ const Navbar = () => {
                     My Orders
                   </div>
                 </Link>
+                {isVendor && (
+                  <Link href="/vendor/dashboard" onClick={() => setShowDropdown(false)}>
+                    <div className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm">
+                      Vendor Dashboard
+                    </div>
+                  </Link>
+                )}
+                {isAdmin && (
+                  <Link href="/admin" onClick={() => setShowDropdown(false)}>
+                    <div className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm">
+                      Admin Dashboard
+                    </div>
+                  </Link>
+                )}
                 <div
                   onClick={() => {
                     logout();
@@ -149,6 +164,20 @@ const Navbar = () => {
                     My Orders
                   </div>
                 </Link>
+                {isVendor && (
+                  <Link href="/vendor/dashboard" onClick={() => setShowDropdown(false)}>
+                    <div className="px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-sm active:bg-gray-100">
+                      Vendor Dashboard
+                    </div>
+                  </Link>
+                )}
+                {isAdmin && (
+                  <Link href="/admin" onClick={() => setShowDropdown(false)}>
+                    <div className="px-3 py-2.5 hover:bg-gray-50 cursor-pointer text-sm active:bg-gray-100">
+                      Admin Dashboard
+                    </div>
+                  </Link>
+                )}
                 <div
                   onClick={() => {
                     logout();
@@ -217,13 +246,15 @@ const Navbar = () => {
                 {label}
               </Link>
             ))}
-            <Link
-              href="/admin"
-              onClick={closeMobileMenu}
-              className="py-3 px-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 active:bg-gray-200 transition"
-            >
-              Admin
-            </Link>
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={closeMobileMenu}
+                className="py-3 px-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 active:bg-gray-200 transition"
+              >
+                Admin
+              </Link>
+            )}
           </nav>
         </div>
       </div>

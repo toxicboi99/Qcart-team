@@ -1,20 +1,14 @@
-import prisma from "@/lib/prisma";
-import { errorResponse } from "@/lib/server/http";
-import { serializeOrder } from "@/lib/server/serializers";
+import { adminOnly } from "@/lib/server/middleware/access";
+import { listAllOrdersController } from "@/lib/server/controllers/order.controller";
 
 export const runtime = "nodejs";
 
-export async function GET() {
-  try {
-    const orders = await prisma.order.findMany({
-      include: {
-        user: true,
-      },
-      orderBy: { createdAt: "desc" },
-    });
+export async function GET(request) {
+  const { response } = await adminOnly(request);
 
-    return Response.json(orders.map(serializeOrder));
-  } catch (error) {
-    return errorResponse(error.message || "Failed to fetch orders", 400);
+  if (response) {
+    return response;
   }
+
+  return listAllOrdersController();
 }

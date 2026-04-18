@@ -4,8 +4,7 @@ import { useAppContext } from "@/context/AppContext";
 import Footer from "@/components/admin/Footer";
 import Loading from "@/components/Loading";
 import toast from "react-hot-toast";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+import { fetchWithSession } from "@/lib/client-fetch";
 
 function formatDate(value) {
   if (!value) return "Recently";
@@ -33,15 +32,11 @@ const Orders = () => {
 
   const fetchAdminOrders = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/orders/all`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
+      const { response, data } = await fetchWithSession(`/api/orders/all`, {
+        sessionSource: "admin",
       });
 
       if (response.ok) {
-        const data = await response.json();
         setOrders(data);
         setIsBackendAvailable(true);
       } else {
@@ -73,7 +68,8 @@ const Orders = () => {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/orders/${orderId}`, {
+      const { response, data } = await fetchWithSession(`/api/orders/${orderId}`, {
+        sessionSource: "admin",
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -91,7 +87,6 @@ const Orders = () => {
           )
         );
       } else {
-        const data = await response.json().catch(() => ({}));
         toast.error(data.error || "Failed to update payment status");
       }
     } catch (error) {
@@ -115,7 +110,8 @@ const Orders = () => {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/orders/${orderId}`, {
+      const { response, data } = await fetchWithSession(`/api/orders/${orderId}`, {
+        sessionSource: "admin",
         method: "DELETE",
       });
 
@@ -125,7 +121,6 @@ const Orders = () => {
           currentOrders.filter((order) => order._id !== orderId)
         );
       } else {
-        const data = await response.json().catch(() => ({}));
         toast.error(data.error || "Failed to delete order");
       }
     } catch (error) {

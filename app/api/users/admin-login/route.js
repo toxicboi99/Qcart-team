@@ -33,7 +33,7 @@ export async function POST(request) {
 
     const syncedUser = await syncRoleIfNeeded(user);
 
-    if (syncedUser.role !== "admin" && syncedUser.role !== "seller") {
+    if (syncedUser.role !== "admin") {
       return errorResponse("Admin access only", 403);
     }
 

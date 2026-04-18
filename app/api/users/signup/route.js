@@ -67,7 +67,7 @@ export async function POST(request) {
           },
         });
 
-    const emailResult = await sendVerificationEmail(email, otp);
+    await sendVerificationEmail(email, otp);
 
     return Response.json(
       {
@@ -75,11 +75,10 @@ export async function POST(request) {
           ? "OTP re-sent to your email address"
           : "OTP sent to your email address",
         userId: user.id,
-        ...(emailResult.previewOtp ? { otpPreview: emailResult.previewOtp } : {}),
       },
       { status: existingUser ? 200 : 201 }
     );
   } catch (error) {
-    return errorResponse(error.message || "Signup failed", 400);
+    return errorResponse(error.message || "Signup failed", error.statusCode || 400);
   }
 }

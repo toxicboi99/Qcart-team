@@ -4,9 +4,7 @@ import { assets } from "@/assets/assets";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import { useAppContext } from "@/context/AppContext";
-import { getAdminSession } from "@/lib/session";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+import { fetchWithSession } from "@/lib/client-fetch";
 
 const AddProduct = () => {
   const { fetchProductData } = useAppContext();
@@ -24,33 +22,24 @@ const AddProduct = () => {
     setLoading(true);
 
     try {
-      const session = getAdminSession();
-      const userId = session?.user?._id;
-      if (!userId) {
-        toast.error('Please log in as admin');
-        setLoading(false);
-        return;
-      }
-
       const formData = new FormData();
       formData.append('name', name);
       formData.append('description', description);
       formData.append('category', category);
       formData.append('price', price);
       formData.append('offerPrice', offerPrice);
-      formData.append('userId', userId);
 
       files.forEach((file) => {
         if (file) formData.append('images', file);
       });
 
-      const res = await fetch(`${API_URL}/api/products`, {
+      const { response, data } = await fetchWithSession('/api/products', {
+        sessionSource: 'admin',
         method: 'POST',
         body: formData,
       });
 
-      const data = await res.json();
-      if (res.ok) {
+      if (response.ok) {
         toast.success('Product added successfully!');
         setName('');
         setDescription('');

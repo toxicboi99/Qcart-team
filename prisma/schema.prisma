@@ -7,47 +7,70 @@ datasource db {
 }
 
 model User {
-  id          String    @id @default(cuid())
-  name        String
-  phoneNumber String
-  email       String    @unique
-  password    String
-  otp         String?
-  otpExpiry   DateTime?
-  isVerified  Boolean   @default(false)
-  role        String    @default("user")
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  orders      Order[]
-  products    Product[]
+  id                 String           @id @default(cuid())
+  name               String
+  phoneNumber        String
+  email              String           @unique
+  password           String
+  otp                String?
+  otpExpiry          DateTime?
+  isVerified         Boolean          @default(false)
+  role               String           @default("user")
+  isVendor           Boolean          @default(false)
+  isApproved         Boolean          @default(false)
+  isBlocked          Boolean          @default(false)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  orders             Order[]
+  products           Product[]        @relation("OwnedProducts")
+  vendorProducts     Product[]        @relation("VendorProducts")
+  vendorProfile      VendorProfile?
+  vendorPayments     PaymentHistory[] @relation("VendorPayments")
+  withdrawRequests   WithdrawRequest[] @relation("VendorWithdrawRequests")
+  authoredReviews    Review[]         @relation("AuthorReviews")
+  vendorStoreReviews Review[]         @relation("VendorStoreReviews")
 }
 
 model Product {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String
-  description String
-  price       Float
-  offerPrice  Float
-  image       String[]
-  category    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation("OwnedProducts", fields: [userId], references: [id], onDelete: Cascade)
+  vendorId      String?
+  vendor        User?            @relation("VendorProducts", fields: [vendorId], references: [id], onDelete: SetNull)
+  name          String
+  description   String
+  price         Float
+  offerPrice    Float
+  discount      Float            @default(0)
+  stock         Int              @default(100)
+  variants      Json?
+  image         String[]
+  category      String
+  isApproved    Boolean          @default(false)
+  approvalNotes String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  reviews       Review[]
+  payments      PaymentHistory[]
+
+  @@index([vendorId])
+  @@index([isApproved])
+  @@index([category])
 }
 
 model Order {
-  id            String   @id @default(cuid())
+  id            String           @id @default(cuid())
   userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   items         Json
   amount        Float
   address       Json
-  status        String   @default("Pending")
-  paymentMethod String   @default("COD")
-  paymentStatus String   @default("Pending")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  status        String           @default("Pending")
+  paymentMethod String           @default("COD")
+  paymentStatus String           @default("Pending")
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  payments      PaymentHistory[]
 }
 
 model Contact {
@@ -60,4 +83,109 @@ model Contact {
   status      String   @default("new")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model AppSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VendorProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storeName          String   @unique
+  businessType       String
+  description        String
+  logo               String
+  banner             String?
+  address1           String
+  address2           String?
+  city               String
+  state              String
+  pincode            String
+  country            String
+  accountHolderName  String?
+  bankName           String?
+  accountNumber      String?
+  esewaId            String?
+  fonepayId          String?
+  panNumber          String
+  citizenshipNumber  String
+  categories         String[] @default([])
+  termsAccepted      Boolean  @default(false)
+  commissionAccepted Boolean  @default(false)
+  commissionRate     Float    @default(10)
+  deliveryCharge     Float    @default(0)
+  deliveryAreas      String[] @default([])
+  pickupAddress1     String?
+  pickupAddress2     String?
+  pickupCity         String?
+  pickupState        String?
+  pickupPincode      String?
+  pickupCountry      String?
+  notifyNewOrder     Boolean  @default(true)
+  notifyPayment      Boolean  @default(true)
+  notifyStock        Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([storeName])
+  @@index([userId])
+}
+
+model PaymentHistory {
+  id               String   @id @default(cuid())
+  vendorId         String
+  vendor           User     @relation("VendorPayments", fields: [vendorId], references: [id], onDelete: Cascade)
+  orderId          String?
+  order            Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  productId        String?
+  product          Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  grossAmount      Float
+  commissionAmount Float
+  netAmount        Float
+  note             String?
+  status           String   @default("Pending")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([vendorId])
+  @@index([orderId])
+}
+
+model WithdrawRequest {
+  id        String   @id @default(cuid())
+  vendorId  String
+  vendor    User     @relation("VendorWithdrawRequests", fields: [vendorId], references: [id], onDelete: Cascade)
+  amount    Float
+  note      String?
+  status    String   @default("Pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vendorId])
+  @@index([status])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  vendorId  String
+  vendor    User     @relation("VendorStoreReviews", fields: [vendorId], references: [id], onDelete: Cascade)
+  userId    String?
+  author    User?    @relation("AuthorReviews", fields: [userId], references: [id], onDelete: SetNull)
+  rating    Int
+  comment   String
+  reply     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([vendorId])
+  @@index([userId])
 }

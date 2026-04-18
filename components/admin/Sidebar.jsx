@@ -11,6 +11,8 @@ const SideBar = () => {
         { name: 'Product List', path: '/admin/product-list', icon: assets.product_list_icon },
         { name: 'Orders', path: '/admin/orders', icon: assets.order_icon },
         { name: 'Order Status', path: '/admin/order-status', icon: assets.order_icon },
+        { name: 'Vendors', path: '/admin/vendors', icon: assets.product_list_icon },
+        { name: 'Payouts', path: '/admin/payouts', icon: assets.order_icon },
     ];
 
     return (
